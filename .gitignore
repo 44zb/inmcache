@@ -1,0 +1,9 @@
+# Visual studio files
+.vs/
+.vscode/
+CmakeSettings.json
+
+# Build directries
+out/ 
+build/
+
