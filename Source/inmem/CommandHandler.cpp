@@ -1,87 +1,127 @@
 #include "CommandHandler.h"
 
-#include "boost/algorithm/string/classification.hpp"
-#include "boost/algorithm/string/split.hpp"
-
+#include <sstream>
 #include <string>
 
 namespace Inmem {
-
 namespace Response {
-static inline std::string invalid_str{"INV"};
-static inline std::string error_str{"ERR"};
-static inline std::string done_str{"DON"};
+std::string get_invalid_reponse(std::string_view text = "Invalid request") {
+  return std::string("INV:").append(text);
+}
+
+std::string get_error_reponse(std::string_view text = "Unexpected error") {
+  return std::string("ERR:").append(text);
+};
+
+std::string get_done_reponse(std::string_view text = "") {
+  return std::string("DON").append(text);
+};
+
+std::string error_not_all_arg_provided() {
+  return get_error_reponse("Not all required parameters were provided.");
+}
+
 } // namespace Response
 static std::vector<std::string> command_list = {"GET", "SET", "INC",
                                                 "DEC", "REM", "EXS"};
 
-enum Commands {
-  command_id_get = 0,
-  command_id_set = 1,
-  command_id_increment = 2,
-  command_id_decrement = 3,
-  command_id_remote = 4,
-  command_id_exists = 5
+enum class Commands : uint8_t {
+  Get = 0,
+  Set = 1,
+  Increment = 2,
+  Decrement = 3,
+  Remove = 4,
+  Exists = 5
 };
+
+inline std::string get_reset_of_string(std::istringstream &ss,
+                                       const std::string &str) {
+  // +1 for skipping space symbol
+  return std::string(str.begin() + ss.tellg() + 1, str.end());
+}
 
 CommandHandler::CommandHandler(std::shared_ptr<CacheStorage> storage)
     : storage(storage) {}
 
-std::string CommandHandler::receive(std::string &&cmd) {
+std::string CommandHandler::receive(std::string &&str) {
+  std::istringstream ss(str);
 
-  std::vector<std::string> words;
-  boost::split(words, cmd, boost::is_any_of(" "), boost::token_compress_on);
+  std::string command;
+  ss >> command;
 
-  if (words.size() <= 0) {
-    return Response::invalid_str;
-  }
+  auto command_itr =
+      std::find(command_list.begin(), command_list.end(), command);
 
-  std::string command_str = words[0];
-  auto command =
-      std::find(command_list.begin(), command_list.end(), command_str);
-
-  if (command == command_list.end()) {
-    return Response::invalid_str;
-  }
-
-  size_t command_id = command - command_list.begin();
+  // Enum values in commands have same value as
+  Commands command_id =
+      static_cast<Commands>(command_itr - command_list.begin());
 
   switch (command_id) {
-  case command_id_get:
-    if (words.size() == 2) {
-      return storage->get(std::move(words[1]));
+  case Commands::Get: {
+    std::string value = get_reset_of_string(ss, str);
+    if (value.empty()) {
+      return Response::error_not_all_arg_provided();
     }
-    return Response::error_str;
-  case command_id_set:
-    if (words.size() == 3) {
-      storage->set(std::move(words[1]), std::move(words[2]));
-      return Response::done_str;
-    }
-    return Response::error_str;
-  case command_id_increment:
-    if (words.size() == 2) {
-      return std::to_string(storage->increament(std::move(words[1])));
-    }
-    return Response::error_str;
-  case command_id_decrement:
-    if (words.size() == 2) {
-      return std::to_string(storage->decriment(std::move(words[1])));
-    }
-    return Response::error_str;
-  case command_id_remote:
-    if (words.size() == 2) {
-      storage->remove(std::move(words[1]));
-      return Response::done_str;
-    }
-    return Response::error_str;
-  case command_id_exists:
-    if (words.size() == 2) {
-      return storage->exists(std::move(words[1])) ? "true" : "false";
-    }
-    return Response::error_str;
+
+    return storage->get(value);
   }
 
-  return Response::invalid_str;
+  case Commands::Set: {
+    std::string arg;
+    ss >> arg;
+
+    std::string arg2(get_reset_of_string(ss, str));
+    if (arg.empty() || arg2.empty()) {
+      return Response::error_not_all_arg_provided();
+    }
+    storage->set(arg, std::move(arg2));
+    return Response::get_done_reponse();
+  }
+
+  case Commands::Increment: {
+    std::string arg;
+    ss >> arg;
+    if (arg.empty()) {
+      return Response::error_not_all_arg_provided();
+    }
+    return std::to_string(storage->increament(arg));
+  }
+
+  case Commands::Decrement: {
+    std::string arg;
+    ss >> arg;
+
+    if (arg.empty()) {
+      return Response::error_not_all_arg_provided();
+    }
+
+    return std::to_string(storage->decriment(arg));
+  }
+
+  case Commands::Remove: {
+    std::string arg;
+    ss >> arg;
+
+    if (arg.empty()) {
+      return Response::error_not_all_arg_provided();
+    }
+    storage->remove(arg);
+    return Response::get_done_reponse();
+  }
+
+  case Commands::Exists: {
+    std::string arg;
+    ss >> arg;
+
+    if (arg.empty()) {
+      return Response::error_not_all_arg_provided();
+    }
+
+    return storage->exists(arg) ? "TRUE" : "FALSE";
+  }
+  }
+
+  return Response::get_invalid_reponse();
 }
 
 } // namespace Inmem

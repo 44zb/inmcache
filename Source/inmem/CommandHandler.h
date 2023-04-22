@@ -9,7 +9,7 @@ namespace Inmem {
 class CommandHandler : public ListnerCallback {
 public:
   CommandHandler(std::shared_ptr<CacheStorage> storage);
-  std::string receive(std::string &&cmd) override;
+  std::string receive(std::string &&str) override;
 
 private:
   std::shared_ptr<CacheStorage> storage;

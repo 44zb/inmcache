@@ -43,13 +43,14 @@ awaitable<void> TCPListener::proccess_request(tcp::socket socket) {
     size_t n = co_await asio::async_read_until(socket, buffer, '\0',
                                                asio::use_awaitable);
 
-    std::string str((std::istreambuf_iterator<char>(&buffer)),
+    std::string received_data =
+        std::string((std::istreambuf_iterator<char>(&buffer)),
                     std::istreambuf_iterator<char>());
 
     // removing /0 character
-    str.pop_back();
+    received_data.pop_back();
 
-    std::string response = callback->receive(std::move(str));
+    std::string response = callback->receive(std::move(received_data));
     response.append("\n");
 
     co_await async_write(socket,
