@@ -13,9 +13,9 @@ FetchContent_MakeAvailable(googletest)
 
 include(GoogleTest)
 
-add_executable(inmcache_test "Test.cpp")
+add_executable(inmcache_test "Test.cpp" "CacheStorageTest.cpp" "CommandHandlerTest.cpp")
 
-target_link_libraries(inmcache_test PRIVATE inmcache_lib gtest_main)
+target_link_libraries(inmcache_test PRIVATE inmcache_lib gtest_main gmock_main)
 target_include_directories(inmcache_test PRIVATE ${INM_INCLUDE_FILES})
 
 gtest_discover_tests(inmcache_test)

@@ -14,7 +14,7 @@ std::string get_error_reponse(std::string_view text = "Unexpected error") {
 };
 
 std::string get_done_reponse(std::string_view text = "") {
-  return std::string("DON").append(text);
+  return std::string("DON:").append(text);
 };
 
 std::string error_not_all_arg_provided() {
@@ -36,8 +36,14 @@ enum class Commands : uint8_t {
 
 inline std::string get_reset_of_string(std::istringstream &ss,
                                        const std::string &str) {
+  auto tellg = static_cast<int64_t> (ss.tellg());
+
+  if (tellg < 0) {
+    return "";
+  }
+
   // +1 for skipping space symbol
-  return std::string(str.begin() + ss.tellg() + 1, str.end());
+  return std::string(str.begin() + tellg + 1, str.end());
 }
 
 CommandHandler::CommandHandler(std::shared_ptr<CacheStorage> storage)
@@ -58,66 +64,67 @@ std::string CommandHandler::receive(std::string &&str) {
 
   switch (command_id) {
   case Commands::Get: {
-    std::string value = get_reset_of_string(ss, str);
-    if (value.empty()) {
+    std::string key;
+    ss >> key;
+    if (key.empty()) {
       return Response::error_not_all_arg_provided();
     }
 
-    return storage->get(value);
+    return storage->get(key);
   }
 
   case Commands::Set: {
-    std::string arg;
-    ss >> arg;
+    std::string key;
+    ss >> key;
 
-    std::string arg2(get_reset_of_string(ss, str));
-    if (arg.empty() || arg2.empty()) {
+    std::string value(get_reset_of_string(ss, str));
+    if (key.empty() || value.empty()) {
       return Response::error_not_all_arg_provided();
     }
-    storage->set(arg, std::move(arg2));
+    storage->set(key, std::move(value));
     return Response::get_done_reponse();
   }
 
   case Commands::Increment: {
-    std::string arg;
-    ss >> arg;
-    if (arg.empty()) {
+    std::string key;
+    ss >> key;
+    if (key.empty()) {
       return Response::error_not_all_arg_provided();
     }
-    return std::to_string(storage->increament(arg));
+    return std::to_string(storage->increament(key));
   }
 
   case Commands::Decrement: {
-    std::string arg;
-    ss >> arg;
+    std::string key;
+    ss >> key;
 
-    if (arg.empty()) {
+    if (key.empty()) {
       return Response::error_not_all_arg_provided();
     }
 
-    return std::to_string(storage->decriment(arg));
+    return std::to_string(storage->decriment(key));
   }
 
   case Commands::Remove: {
-    std::string arg;
-    ss >> arg;
+    std::string key;
+    ss >> key;
 
-    if (arg.empty()) {
+    if (key.empty()) {
       return Response::error_not_all_arg_provided();
     }
-    storage->remove(arg);
+    storage->remove(key);
     return Response::get_done_reponse();
   }
 
   case Commands::Exists: {
-    std::string arg;
-    ss >> arg;
+    std::string key;
+    ss >> key;
 
-    if (arg.empty()) {
+    if (key.empty()) {
       return Response::error_not_all_arg_provided();
     }
 
-    return storage->exists(arg) ? "TRUE" : "FALSE";
+    return storage->exists(key) ? "TRUE" : "FALSE";
   }
   }
 

@@ -8,7 +8,7 @@ language that supports TCP connections. The table below lists the supported comm
 
 | Command				| Desription																|
 ------------------------|---------------------------------------------------------------------------|
-|	SET	\<Key> \<Value>	| keyCreate/update stored data by key										|
+|	SET	\<Key> \<Value>	| Create/update stored data by key											|
 |	GET \<Key>			| Get stored data by 														|
 |	INC \<Key>			| Increment numeric value by 1. Non-numeric data will be interpreted as 0	|
 |	DEC \<Key>			| Decrement numeric value by 1. Non-numeric data will be interpreted as 0	|
